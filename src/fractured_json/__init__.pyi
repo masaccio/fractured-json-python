@@ -1,13 +1,13 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 class CommentPolicy:
-    DISALLOW: "CommentPolicy"
-    PRESERVE: "CommentPolicy"
+    DISALLOW: CommentPolicy
+    PRESERVE: CommentPolicy
 
 class EolStyle:
-    SYSTEM: "EolStyle"
-    CRLF: "EolStyle"
-    LF: "EolStyle"
+    SYSTEM: EolStyle
+    CRLF: EolStyle
+    LF: EolStyle
 
 class FracturedJsonOptions:
     max_total_line_length: int
@@ -26,7 +26,7 @@ class FracturedJsonOptions:
 
     # Dynamic API
     def __init__(self, **kwargs: Any) -> None: ...
-    def list_options(self) -> Dict[str, Dict[str, Any]]: ...
+    def list_options(self) -> dict[str, dict[str, Any]]: ...
     def get(self, name: str) -> Any: ...
     def set(self, name: str, value: Any) -> None: ...
 
@@ -35,7 +35,7 @@ class FracturedJsonOptions:
     def __setattr__(self, name: str, value: Any) -> None: ...
 
 class Formatter:
-    def __init__(self, options: Optional[FracturedJsonOptions] = None) -> None: ...
+    def __init__(self, options: FracturedJsonOptions | None = None) -> None: ...
     @property
     def options(self) -> FracturedJsonOptions: ...
     @options.setter
@@ -44,4 +44,10 @@ class Formatter:
     def serialize(self, obj: Any) -> str: ...
 
 # Module re-exports
-__all__: list[str]
+__all__: list[str] = [
+    "CommentPolicy",
+    "EolStyle",
+    "Formatter",
+    "FracturedJsonOptions",
+    "TableCommaPlacement",
+]

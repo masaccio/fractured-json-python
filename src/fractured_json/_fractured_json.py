@@ -2,6 +2,8 @@ import argparse  # noqa: I001
 import logging
 import sys
 
+from wcwidth import wcswidth
+
 from fractured_json import EolStyle, Formatter, FracturedJsonOptions
 from fractured_json import _get_version, to_snake_case  # pyright: ignore[reportAttributeAccessIssue]
 from fractured_json.generated.option_descriptions import FLAG_DESCRIPTIONS
@@ -59,16 +61,16 @@ def command_line_parser() -> argparse.ArgumentParser:
         help="Enable debug logging",
     )
     parser.add_argument(
-        "--east-asian-chars",
-        default=False,
-        action="store_true",
-        help="Treat strings as unicode East Asian characters",
-    )
-    parser.add_argument(
         "json",
         nargs="*",
         type=argparse.FileType("r"),
         help='JSON file(s) to parse (or stdin with "-")',
+    )
+    parser.add_argument(
+        "--east-asian-chars",
+        default=False,
+        action="store_true",
+        help="Treat strings as unicode East Asian characters",
     )
     return parser
 
@@ -90,6 +92,8 @@ def main() -> None:
         default_options = FracturedJsonOptions()
         for name in default_options.list_options():
             setattr(formatter, name, getattr(args, name))
+        if args.east_asian_chars:
+            formatter.string_length_func = lambda s: wcswidth(s)
 
         hdlr = logging.StreamHandler()
         hdlr.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
