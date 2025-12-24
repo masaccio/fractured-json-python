@@ -50,6 +50,7 @@ import clr  # noqa: E402
 from System import (  # noqa: E402 # pyright: ignore[reportMissingImports]
     Activator,
     Boolean,
+    Enum,
     Int16,
     Int32,
     Int64,
@@ -66,10 +67,16 @@ def get_object_types() -> dict[str, "System.RuntimeType"]:
 
 
 def to_snake_case(name: str, upper: bool = True) -> str:
-    """Convert PascalCase or camelCase to SNAKE_CASE or snake_case."""
+    """Convert Pascal case or camel case to snake case."""
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
     return s2.upper() if upper else s2.lower()
+
+
+def snake_enum_to_pascal(name: str) -> str:
+    """Convert snake case enum to Pascal case."""
+    words = name.split("_")
+    return "".join(word.capitalize() for word in words)
 
 
 class NativeEnum:
@@ -202,15 +209,17 @@ class FracturedJsonOptions:
         target_type = prop.PropertyType
 
         if target_type.FullName in ("System.Int16"):
-            value = Int16(value)
+            value = Int16(int(value))
         elif target_type.FullName in ("System.Int32"):
-            value = Int32(value)
+            value = Int32(int(value))
         elif target_type.FullName in ("System.Int64"):
-            value = Int64(value)
+            value = Int64(int(value))
         elif target_type.FullName == "System.Boolean":
-            value = Boolean(value)
-        elif target_type.IsEnum:
-            value = Int32(value.value)
+            value = Boolean(bool(value))
+        elif target_type.IsEnum and isinstance(value, NativeEnum):
+            value = Enum.ToObject(target_type, Int32(value.value))
+        elif target_type.IsEnum and isinstance(value, str):
+            value = Enum.Parse(prop.PropertyType, snake_enum_to_pascal(value))
         else:
             warn(f"Unhandled property type: {target_type.FullName}", stacklevel=2)
 
