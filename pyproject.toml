@@ -12,7 +12,7 @@ email = "python@figsandfudge.com"
 name = "Jon Connell"
 
 [dependency-groups]
-dev = [ "pytest-console-scripts", "pytest-cov", "toml>=0.10.2", "requests>=2.32.5", "ruff", "beautifulsoup4>=4.14.3",]
+dev = [ "pytest-console-scripts", "pytest-cov", "toml>=0.10.2", "requests>=2.32.5", "ruff", "beautifulsoup4>=4.14.3", "pytest-check>=2.6.2",]
 
 [build-system]
 build-backend = "setuptools.build_meta"
