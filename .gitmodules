@@ -1,3 +1,4 @@
-[submodule "vendor/FracturedJson"]
-	path = vendor/FracturedJson
+[submodule "FracturedJson"]
+	path = FracturedJson
 	url = https://github.com/j-brooke/FracturedJson.git
+	branch = main
