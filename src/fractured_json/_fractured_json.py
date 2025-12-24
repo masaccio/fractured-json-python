@@ -25,7 +25,7 @@ def command_line_parser() -> argparse.ArgumentParser:
         "the number of input files.",
     )
     default_options = FracturedJsonOptions()
-    for name, info in default_options.list_options().items():
+    for name, info in sorted(default_options.list_options().items()):
         default = default_options.get(name)
         help = FLAG_DESCRIPTIONS.get(name, "")
         if info["is_enum"]:
