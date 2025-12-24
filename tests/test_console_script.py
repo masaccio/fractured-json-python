@@ -1,18 +1,19 @@
 import re
 
 import pytest
-from compact_json import _get_version
+
+from fractured_json import _get_version
 
 
 def test_version(script_runner):
-    ret = script_runner.run(["compact-json", "--version"], print_result=False)
+    ret = script_runner.run(["fractured-json", "--version"], print_result=False)
     assert ret.success
     assert ret.stdout == _get_version() + "\n"
     assert ret.stderr == ""
 
 
 def test_help(script_runner):
-    ret = script_runner.run(["compact-json", "--help"], print_result=False)
+    ret = script_runner.run(["fractured-json", "--help"], print_result=False)
     assert ret.success
     assert "Format JSON into compact, human readable form" in ret.stdout
     assert "Indent N" in ret.stdout
@@ -56,7 +57,7 @@ REF_UNICODE_TEST = """{
 def test_args(script_runner, pytestconfig):
     ret = script_runner.run(
         [
-            "compact-json",
+            "fractured-json",
             "--indent=2",
             "--tab-indent",
             "--justify-numbers",
@@ -87,7 +88,7 @@ def test_args(script_runner, pytestconfig):
 def test_unicode(script_runner):
     ret = script_runner.run(
         [
-            "compact-json",
+            "fractured-json",
             "--east-asian-chars",
             "--no-ensure-ascii",
             "--crlf",
@@ -102,8 +103,8 @@ def test_unicode(script_runner):
 
 
 def test_debug(script_runner):
-    ret = script_runner.run(["compact-json", "--debug", "tests/data/test-1.json"])
-    assert "DEBUG:compact_json.formatter:format_table_dict_list" in ret.stderr
+    ret = script_runner.run(["fractured-json", "--debug", "tests/data/test-1.json"])
+    assert "DEBUG:fractured_json.formatter:format_table_dict_list" in ret.stderr
     assert ret.success
     assert '"title": "Sample Konfabulator Widget"' in ret.stdout
 
@@ -119,7 +120,7 @@ def test_main(script_runner):
 @pytest.mark.script_launch_mode("subprocess")
 def test_stdin(script_runner):
     with open("tests/data/test-bool.json") as fh:
-        ret = script_runner.run(["compact-json", "-"], stdin=fh)
+        ret = script_runner.run(["fractured-json", "-"], stdin=fh)
         assert ret.stderr == ""
         assert ret.success
         assert ret.stdout == '{ "bools": {"true": true, "false": false} }\n'
@@ -127,7 +128,7 @@ def test_stdin(script_runner):
 
 def test_multifile(script_runner):
     ret = script_runner.run(
-        ["compact-json", "tests/data/test-bool.json", "tests/data/test-bool.json"],
+        ["fractured-json", "tests/data/test-bool.json", "tests/data/test-bool.json"],
     )
     assert ret.stderr == ""
     assert ret.success
@@ -137,7 +138,7 @@ def test_multifile(script_runner):
 def test_output(script_runner, tmp_path):
     tmp_file = tmp_path / "test.json"
     ret = script_runner.run(
-        ["compact-json", "tests/data/test-bool.json", "--output", str(tmp_file)],
+        ["fractured-json", "tests/data/test-bool.json", "--output", str(tmp_file)],
     )
     assert ret.stderr == ""
     assert ret.success
@@ -147,7 +148,7 @@ def test_output(script_runner, tmp_path):
 def test_output_mismatched_number_of_files(script_runner):
     ret = script_runner.run(
         [
-            "compact-json",
+            "fractured-json",
             "tests/data/test-bool.json",
             "--output",
             "foo",
@@ -155,5 +156,5 @@ def test_output_mismatched_number_of_files(script_runner):
             "bar",
         ],
     )
-    assert ret.stderr == "compact-json: the numbers of input and output file names do not match\n"
+    assert ret.stderr == "fractured-json: the numbers of input and output file names do not match\n"
     assert ret.returncode == 1
