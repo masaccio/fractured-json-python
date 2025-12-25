@@ -36,7 +36,7 @@ def command_line_parser() -> argparse.ArgumentParser:
         elif isinstance(default, bool):
             parser.add_argument(
                 f"--{name.replace('_', '-')}",
-                action="store_true" if not default else "store_false",
+                action="store_true",
                 default=default,
                 help=f"{desc} (default={default})",
             )
