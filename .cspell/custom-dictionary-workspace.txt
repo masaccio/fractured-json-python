@@ -1,4 +1,6 @@
 # Custom Dictionary Words
 coreclr
+Dunder
 pytestconfig
 pythonnet
+wcswidth
