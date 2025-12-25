@@ -1,14 +1,17 @@
 import re
+from pathlib import Path
 
 import pytest
 
-from fractured_json import _get_version
+from fractured_json import (
+    __version__ as fractured_json_version,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 
 def test_version(script_runner):
     ret = script_runner.run(["fractured-json", "--version"], print_result=False)
     assert ret.success
-    assert ret.stdout == _get_version() + "\n"
+    assert ret.stdout == fractured_json_version + "\n"
     assert ret.stderr == ""
 
 
@@ -18,20 +21,6 @@ def test_help(script_runner):
     assert "Format JSON into compact, human readable form" in ret.stdout
     assert "max-total-line-length N" in ret.stdout
     assert ret.stderr == ""
-
-
-REF_UNICODE_TEST = """{
-    "Thai": {
-        "Abkhazia": "อับฮาเซีย", 
-        "Afghanistan": "อัฟกานิสถาน", 
-        "Albania": "แอลเบเนีย"
-    }, 
-    "Lao": {"Afghanistan": "ອັຟການິດສະຖານ"}, 
-    "Uyghur": {"Albania": "ئالبانىيە"}, 
-    "Hindi, Marathi, Sanskrit": {"Albania": "अल्बानिया"}, 
-    "Western Armenian": {"Albania": "Ալբանիա"}
-}
-"""  # noqa: W291
 
 
 def test_all_args(script_runner, pytestconfig):
@@ -86,28 +75,21 @@ def test_unicode(script_runner):
         [
             "fractured-json",
             "--east-asian-chars",
-            "--no-ensure-ascii",
-            "--crlf",
-            "tests/data/test-issue-4a.json",
+            "--json-eol-style=CRLF",
+            "tests/data/test-wide-chars.json",
         ],
         print_result=False,
     )
     assert ret.stderr == ""
     assert ret.success
-    ref = REF_UNICODE_TEST.replace("\n", "\r\n")
-    assert ret.stdout == ref
-
-
-def test_debug(script_runner):
-    ret = script_runner.run(["fractured-json", "--debug", "tests/data/test-1.json"])
-    assert "DEBUG:fractured_json.formatter:format_table_dict_list" in ret.stderr
-    assert ret.success
-    assert '"title": "Sample Konfabulator Widget"' in ret.stdout
+    # Use read_bytes() to get \r
+    ref_output = Path("tests/data/test-wide-chars.ref-1.json").read_bytes().decode("utf-8")
+    assert ret.stdout == ref_output
 
 
 @pytest.mark.script_launch_mode("subprocess")
 def test_main(script_runner):
-    ret = script_runner.run(["python3", "-m", "fractured-json", "--help"])
+    ret = script_runner.run(["python3", "-m", "fractured_json", "--help"])
     assert ret.stderr == ""
     assert ret.success
     assert "[-h] [-V] [--output" in ret.stdout
