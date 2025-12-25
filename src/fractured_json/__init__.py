@@ -137,7 +137,20 @@ for enum_name in [x.Name for x in types.values() if x.IsEnum]:
 
 
 class FracturedJsonOptions:
-    """FracturedJson.FracturedJsonOptions wrapper."""
+    """Configuration container for FracturedJson formatting options.
+
+    This class is a lightweight Python wrapper around the underlying
+    .NET ``FracturedJson.FracturedJsonOptions`` type. Individual options
+    are exposed as attributes (for example ``max_total_line_length``,
+    ``indent_spaces``, ``comment_policy``). Options can be queried and
+    set through attribute access or via the dynamic API methods
+    :py:meth:`list_options`, :py:meth:`get` and :py:meth:`set`.
+
+    The mapping of Python attribute names to the underlying .NET
+    properties follows snake_case conversion of the .NET property
+    names. Enum-valued options are exposed as members of dynamically
+    generated enum wrapper classes.
+    """
 
     def __init__(self, **kwargs: dict[str, int | str | NativeEnum]) -> None:
         """Initialize FracturedJsonOptions with optional keyword arguments."""
@@ -185,6 +198,21 @@ class FracturedJsonOptions:
             return derived_enum(to_snake_case(str(native_value), upper=True), (int(native_value)))
 
         return prop.GetValue(self._dotnet_instance)
+
+    @classmethod
+    def _from_dotnet(cls, dotnet_instance: object) -> "FracturedJsonOptions":
+        """Create Python wrapper from existing .NET FracturedJsonOptions instance."""
+        if dotnet_instance is None:
+            msg = "dotnet_instance cannot be None"
+            raise ValueError(msg)
+
+        if str(dotnet_instance.GetType()) != str(FracturedJsonOptionsType):
+            msg = f"Expected {FracturedJsonOptionsType}, got {dotnet_instance.GetType()}"
+            raise TypeError(msg)
+
+        wrapper = cls()
+        wrapper._dotnet_instance = dotnet_instance  # Reuse existing instance
+        return wrapper
 
     @staticmethod
     def _to_dotnet_type(
@@ -243,7 +271,33 @@ class FracturedJsonOptions:
 
 
 class Formatter:
-    """Python wrapper around the FracturedJson .NET Formatter."""
+    """Formatter wrapper around the FracturedJson .NET formatter.
+
+    The :class:`Formatter` provides convenient Python access to the
+    .NET formatting functionality. Construct with an optional
+    :class:`FracturedJsonOptions` instance to apply non-default
+    formatting behaviour.
+
+    Example:
+    -------
+    >>> opts = FracturedJsonOptions(indent_spaces=4)
+    >>> fmt = Formatter(opts)
+    >>> fmt.reformat('{"a":1}')
+
+    Methods:
+    -------
+    ``reformat``
+        Reformat a JSON string and return the formatted representation.
+
+    ``serialize``
+        Serialize a Python object using the underlying .NET serializer.
+
+    ``string_length_func``
+        A customizable function used by the formatter to measure string
+        lengths (useful for wide-character handling). Assign a callable
+        taking a single ``str`` argument and returning an ``int``.
+
+    """
 
     def __init__(self, options: FracturedJsonOptions | None = None) -> None:
         """Create a new Formatter wrapper; optionally set `options`."""
@@ -252,12 +306,32 @@ class Formatter:
             options_property = FormatterType.GetProperty("Options")
             options_property.SetValue(self._dotnet_instance, options._dotnet_instance)  # noqa: SLF001
 
+    @property
+    def options(self) -> FracturedJsonOptions:
+        """Gets/sets the formatting options (FracturedJsonOptions)."""
+        prop = FormatterType.GetProperty("Options")
+        dotnet_options = prop.GetValue(self._dotnet_instance, None)
+        return FracturedJsonOptions._from_dotnet(dotnet_options)
+
+    @options.setter
+    def options(self, value: FracturedJsonOptions) -> None:
+        prop = FormatterType.GetProperty("Options")
+        prop.SetValue(self._dotnet_instance, value._dotnet_instance)
+
     def reformat(self, json_text: str) -> str:
         """Reformat a JSON string and return the formatted result."""
         if not isinstance(json_text, str):
             msg = "json_text must be a str"
             raise TypeError(msg)
         result = self._dotnet_instance.Reformat(String(json_text))
+        return str(result)
+
+    def minify(self, json_text: str) -> str:
+        """Minify JSON text to most compact form."""
+        if not isinstance(json_text, str):
+            msg = "json_text must be a str"
+            raise TypeError(msg)
+        result = self._dotnet_instance.Minify(String(json_text))
         return str(result)
 
     def serialize(self, obj: object) -> str:
