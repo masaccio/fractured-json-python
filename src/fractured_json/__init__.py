@@ -334,11 +334,6 @@ class Formatter:
         result = self._dotnet_instance.Minify(String(json_text))
         return str(result)
 
-    def serialize(self, obj: object) -> str:
-        """Serialize a Python object to JSON using the underlying .NET implementation."""
-        result = self._dotnet_instance.Serialize(obj)
-        return str(result)
-
     @property
     def string_length_func(self) -> Callable[[str], int]:
         """Get current string length function."""
