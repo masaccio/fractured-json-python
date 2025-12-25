@@ -16,29 +16,9 @@ def test_help(script_runner):
     ret = script_runner.run(["fractured-json", "--help"], print_result=False)
     assert ret.success
     assert "Format JSON into compact, human readable form" in ret.stdout
-    assert "Indent N" in ret.stdout
+    assert "max-total-line-length N" in ret.stdout
     assert ret.stderr == ""
 
-
-REF_ARG_TEST = """//{
-//	"ObjectColumnsArrayRows": {
-//		"Katherine": [ "blue"      , "lightblue", "black"        ], 
-//		"Logan"    : [ "yellow"    , "blue"     , "black", "red" ], 
-//		"Erik"     : [ "red"       , "purple"                    ], 
-//		"Jean"     : [ "lightgreen", "yellow"   , "black"        ]
-//	}, 
-//	"ArrayColumnsArrayRows" : [
-//		[ 0.1, 3.5, 10.50, 6.5, 2.50, 0.60 ], [ 0.1, 0.1,  1.20, 2.1, 6.70, 4.40 ], [ 0.4, 1.9,  4.40, 5.4, 2.35, 2.01 ], 
-//		[ 7.4, 1.2,  0.01, 0.1, 2.91, 0.20 ]
-//	], 
-//	"DissimilarArrayRows"   : {
-//		"primes"     : [ 2, 3, 5, 7, 11                   ], 
-//		"powersOf2"  : [ 1, 2, 4, 8, 16, 32, 64, 128, 256 ], 
-//		"factorsOf12": [ 2, 2, 3                          ], 
-//		"someZeros"  : [ 0, 0, 0, 0                       ]
-//	}
-//}
-"""  # noqa: W291, E501
 
 REF_UNICODE_TEST = """{
     "Thai": {
@@ -54,26 +34,42 @@ REF_UNICODE_TEST = """{
 """  # noqa: W291
 
 
-def test_args(script_runner, pytestconfig):
+def test_all_args(script_runner, pytestconfig):
     ret = script_runner.run(
         [
             "fractured-json",
-            "--indent=2",
-            "--tab-indent",
-            "--justify-numbers",
-            "--prefix-string=//",
-            "--align-properties",
-            "--bracket-padding=simple",
-            "--max-compact-list-complexity=2",
-            "--max-inline-length=120",
-            "tests/data/test-12.json",
+            "--allow-trailing-commas",
+            "--always-expand-depth=2",
+            "--colon-before-prop-name-padding",
+            "--colon-padding",
+            "--comma-padding",
+            "--comment-padding",
+            "--comment-policy=PRESERVE",
+            "--indent-spaces=2",
+            "--json-eol-style=LF",
+            "--max-compact-array-complexity=2",
+            "--max-inline-complexity=2",
+            "--max-prop-name-padding=2",
+            "--max-table-row-complexity=2",
+            "--max-total-line-length=100",
+            "--min-compact-array-row-items=2",
+            "--nested-bracket-padding",
+            "--number-list-alignment=LEFT",
+            "--prefix-string=::",
+            "--preserve-blank-lines",
+            "--simple-bracket-padding",
+            "--table-comma-placement=BEFORE_PADDING_EXCEPT_NUMBERS",
+            "--use-tab-to-indent",
+            "--east-asian-chars",
+            "tests/data/test-comments-0.jsonc",
         ],
         print_result=False,
     )
 
-    if pytestconfig.getoption("test_verbose") and ret.stdout != REF_ARG_TEST:
+    ref_output = Path("tests/data/test-comments-0.ref-1.jsonc").read_text()
+    if pytestconfig.getoption("test_verbose") and ret.stdout != ref_output:
         json_string_dbg = ">" + re.sub(r"\n", "<\n>", ret.stdout) + "<"
-        ref_json_dbg = ">" + re.sub(r"\n", "<\n>", REF_ARG_TEST) + "<"
+        ref_json_dbg = ">" + re.sub(r"\n", "<\n>", ref_output) + "<"
         print("===== TEST")
         print(json_string_dbg)
         print("===== REF")
@@ -82,7 +78,7 @@ def test_args(script_runner, pytestconfig):
 
     assert ret.stderr == ""
     assert ret.success
-    assert ret.stdout == REF_ARG_TEST
+    assert ret.stdout == ref_output
 
 
 def test_unicode(script_runner):
@@ -111,7 +107,7 @@ def test_debug(script_runner):
 
 @pytest.mark.script_launch_mode("subprocess")
 def test_main(script_runner):
-    ret = script_runner.run(["python3", "-m", "compact_json", "--help"])
+    ret = script_runner.run(["python3", "-m", "fractured-json", "--help"])
     assert ret.stderr == ""
     assert ret.success
     assert "[-h] [-V] [--output" in ret.stdout
