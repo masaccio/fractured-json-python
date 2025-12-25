@@ -2,6 +2,7 @@
 FLAG_DESCRIPTIONS = {
     "allow_trailing_commas": "If true, the final element in an array or object in the input may have a comma after it; otherwise an exception is thrown. The JSON standard doesn't allow trailing commas, but some other tools allow them, so the option is provided for interoperability with them.",
     "always_expand_depth": "Forces elements close to the root to always fully expand, regardless of other settings.",
+    "colon_before_prop_name_padding": "Set to true if you want colons to the left of the spaces uses to line up expanded properties. false puts them after the padding, in a row of their own.",
     "colon_padding": "If true, a space is added after a colon.",
     "comma_padding": "If true, a space is added after a comma.",
     "comment_padding": "If true, a space is added between a prefix/postfix comment and the element to which it is attached.",
@@ -10,6 +11,7 @@ FLAG_DESCRIPTIONS = {
     "json_eol_style": "Determines which sort of line endings to use.",
     "max_compact_array_complexity": "Maximum nesting level that can be arranged spanning multiple lines, with multiple items per line.",
     "max_inline_complexity": "The maximum nesting level that can be displayed on a single line. A primitive type or an empty array or object has a complexity of 0. An object or array has a complexity of 1 greater than its most complex child.",
+    "max_prop_name_padding": "Expanded object property values will be lined up as long as the size difference in labels is this value or less. Generally, lining up the property values looks good as long as the labels are roughly the same size, but not if they vary a lot. This only applies to expanded objects; table properties are lined up no matter what.",
     "max_table_row_complexity": "Maximum nesting level allowed in a row of a table-formatted array/object.",
     "max_total_line_length": "Maximum length of a line, including indentation and everything, for purposes of deciding how much to pile together.",
     "min_compact_array_row_items": "Minimum number of items per line to be eligible for compact-multiline-array formatting.",
