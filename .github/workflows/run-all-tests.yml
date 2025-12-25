@@ -17,49 +17,49 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-    - name: Checkout repo with submodules
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        submodules: recursive
-        persist-credentials: true
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repo with submodules
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Sync and update FracturedJson submodule to tip of main
-      run: |
-        set -euo pipefail
-        # Ensure .gitmodules remotes are in sync and initialize submodules
-        git submodule sync --recursive
-        git submodule update --init --recursive
+      - name: Sync and update FracturedJson submodule to tip of main
+        run: |
+          set -euo pipefail
+          # Ensure .gitmodules remotes are in sync and initialize submodules
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
-        # Force FracturedJson to origin/main (robust for shallow clones)
-        if [ -d "FracturedJson" ]; then
-          pushd FracturedJson
-          git fetch --no-tags origin main
-          if git rev-parse --verify origin/main >/dev/null 2>&1; then
-            git checkout -B main origin/main
-            git reset --hard origin/main
+          # Force FracturedJson to origin/main (robust for shallow clones)
+          if [ -d "FracturedJson" ]; then
+            pushd FracturedJson
+            git fetch --no-tags origin main
+            if git rev-parse --verify origin/main >/dev/null 2>&1; then
+              git checkout -B main origin/main
+              git reset --hard origin/main
+            else
+              echo "ERROR: origin/main not found for FracturedJson"
+              git show-ref || true
+              exit 1
+            fi
+            popd
           else
-            echo "ERROR: origin/main not found for FracturedJson"
-            git show-ref || true
+            echo "ERROR: FracturedJson directory not found after init"
             exit 1
           fi
-          popd
-        else
-          echo "ERROR: FracturedJson directory not found after init"
-          exit 1
-        fi
-  
-    - name: Install uv and set the python version
-      uses: astral-sh/setup-uv@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+    
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install the project
-      run: uv sync --locked --all-extras --dev
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
 
-    - name: Build FracturedJson binaries
-      run: uv run python3 src/build/build_binaries.py
+      - name: Build FracturedJson binaries
+        run: uv run python3 src/build/build_binaries.py
 
-    - name: Run tests
-      run: uv run pytest
+      - name: Run tests
+        run: uv run pytest
