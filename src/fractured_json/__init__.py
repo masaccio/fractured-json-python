@@ -3,8 +3,6 @@ import os
 import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
-from warnings import warn
 
 from pythonnet import load
 
@@ -49,11 +47,10 @@ load_runtime()
 import clr  # noqa: E402
 from System import (  # noqa: E402 # pyright: ignore[reportMissingImports]
     Activator,
+    ArgumentException,
     Boolean,
     Enum,
-    Int16,
     Int32,
-    Int64,
     String,
     Type,
 )
@@ -66,7 +63,7 @@ def get_object_types() -> dict[str, "System.RuntimeType"]:
     return {t.Name: t for t in assembly.GetTypes() if t.BaseType is not None}
 
 
-def to_snake_case(name: str, upper: bool = True) -> str:
+def to_snake_case(name: str, upper: bool = True) -> str:  # noqa: FBT001 FBT002
     """Convert Pascal case or camel case to snake case."""
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
@@ -85,7 +82,11 @@ class NativeEnum:
     _native_type = None
     _native_map = None
 
-    def __init_subclass__(cls, native_type: object | None = None, **kwargs: dict[str, Any]) -> None:
+    def __init_subclass__(
+        cls,
+        native_type: object | None = None,
+        **kwargs: dict[str, bool | int | str],
+    ) -> None:
         super().__init_subclass__(**kwargs)
         if native_type is None:
             msg = f"{cls.__name__} must set _native_type"
@@ -109,20 +110,30 @@ class NativeEnum:
             instance = cls(py_name, native_value)
             setattr(cls, py_name, instance)
 
+    @property
+    def name(self) -> str:
+        """The string name of the enum value."""
+        return self._py_name
+
+    @property
+    def value(self) -> str:
+        """The integer value of the enum."""
+        return self._py_value
+
     def __init__(self, py_name: str, native_value: str) -> None:
         self._py_name = py_name
-        self.value = native_value
+        self._py_value = native_value
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self._py_name}"
 
     def __eq__(self, other: "NativeEnum") -> bool:
         if isinstance(other, self.__class__):
-            return self.value == other.value
-        return self.value == other
+            return self._py_value == other._py_value
+        return self._py_value == other
 
     def __hash__(self) -> int:
-        return hash(self.value)
+        return hash(self._py_value)
 
 
 types = get_object_types()
@@ -155,7 +166,7 @@ class FracturedJsonOptions:
     def __init__(self, **kwargs: dict[str, int | str | NativeEnum]) -> None:
         """Initialize FracturedJsonOptions with optional keyword arguments."""
         self._dotnet_instance = Activator.CreateInstance(FracturedJsonOptionsType)
-        self._properties: dict[str, dict[str, Any]] = {}
+        self._properties: dict[str, dict[str, object | str | list | bool]] = {}
         self._get_dotnet_props()
 
         for key, value in kwargs.items():
@@ -181,49 +192,55 @@ class FracturedJsonOptions:
                 "prop": prop,
                 "dotnet_name": prop.Name,
                 "type": str(prop.PropertyType.FullName),
-                "can_read": bool(prop.CanRead),
-                "can_write": bool(prop.CanWrite),
                 "is_enum": bool(prop.PropertyType.IsEnum),
                 "enum_names": enum_names,
             }
 
-    def list_options(self) -> dict[str, dict[str, Any]]:
+    def list_options(self) -> dict[str, dict[str, object | str | list | bool]]:
         """Return a dictionary of available options and their metadata."""
         return self._properties
 
     def get(self, name: str) -> int | bool | str | NativeEnum:
         """Getter for an option that calls the .NET class."""
         prop = self._properties[name]["prop"]
-        if not prop.CanRead:
-            msg = f"Option {name} is write-only"
-            raise AttributeError(msg)
         return prop.GetValue(self._dotnet_instance, None)
+
+    @staticmethod
+    def _to_dotnet_type(
+        prop: "System.Reflection.RuntimePropertyInfo",
+        value: int | bool | str | NativeEnum,  # noqa: FBT001
+    ) -> Int32 | Boolean | Enum:
+        """Convert a Python value to the appropriate .NET type."""
+        target_type = prop.PropertyType
+        if target_type.FullName in ("System.Int32") and isinstance(value, int):
+            return Int32(value)
+        if target_type.FullName == "System.Boolean" and isinstance(value, bool):
+            return Boolean(value)
+        if target_type.FullName == "System.String" and isinstance(value, str):
+            return String(value)
+        if target_type.IsEnum and isinstance(value, NativeEnum):
+            return Enum.Parse(prop.PropertyType, snake_enum_to_pascal(value.name))
+        if target_type.IsEnum and isinstance(value, str):
+            return Enum.Parse(prop.PropertyType, snake_enum_to_pascal(value))
+
+        msg = f"Unhandled property type: {target_type.FullName}"
+        raise ValueError(msg)
 
     def set(self, name: str, value: int | bool | str | NativeEnum) -> None:  # noqa: FBT001
         """Setter for an option that calls the .NET class."""
+        if name not in self._properties:
+            msg = f"Unknown option '{name}'"
+            raise KeyError(msg)
+
         prop = self._properties[name]["prop"]
-        if not prop.CanWrite:
-            msg = f"Option {name} is read-only"
-            raise AttributeError(msg)
-
-        target_type = prop.PropertyType
-
-        if target_type.FullName in ("System.Int16"):
-            value = Int16(int(value))
-        elif target_type.FullName in ("System.Int32"):
-            value = Int32(int(value))
-        elif target_type.FullName in ("System.Int64"):
-            value = Int64(int(value))
-        elif target_type.FullName == "System.Boolean":
-            value = Boolean(bool(value))
-        elif target_type.IsEnum and isinstance(value, NativeEnum):
-            value = Enum.ToObject(target_type, Int32(value.value))
-        elif target_type.IsEnum and isinstance(value, str):
-            value = Enum.Parse(prop.PropertyType, snake_enum_to_pascal(value))
-        else:
-            warn(f"Unhandled property type: {target_type.FullName}", stacklevel=2)
-
-        prop.SetValue(self._dotnet_instance, value, None)
+        try:
+            prop.SetValue(self._dotnet_instance, self._to_dotnet_type(prop, value), None)
+        except ArgumentException as e:
+            msg = f"Invalid value '{value}' for option {name}"
+            raise ValueError(msg) from e
+        except ValueError as e:
+            msg = f"Invalid value '{value}' for option {name}"
+            raise ValueError(msg) from e
 
     def __getattr__(self, name: str) -> int | bool | str | NativeEnum:
         """Attribute delegation to get option values dynamically."""
@@ -262,7 +279,7 @@ class Formatter:
         result = self._dotnet_instance.Reformat(String(json_text))
         return str(result)
 
-    def serialize(self, obj: Any) -> str:
+    def serialize(self, obj: object) -> str:
         """Serialize a Python object to JSON using the underlying .NET implementation."""
         result = self._dotnet_instance.Serialize(obj)
         return str(result)
