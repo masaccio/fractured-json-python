@@ -62,8 +62,15 @@ def snake_enum_to_pascal(name: str) -> str:
     return "".join(word.capitalize() for word in words)
 
 
+_native_enum_cache: dict[str, type] = {}
+
+
 class NativeEnum:
-    """Generic base class that dynamically maps .NET enums to Pythonic attributes."""
+    """Generic base class that dynamically maps .NET enums to Pythonic attributes.
+
+    Prefer explicit creation via `NativeEnum.from_dotnet_type(dotnet_type)` rather than relying
+    on implicit subclass side-effects.
+    """
 
     _native_type = None
 
@@ -72,11 +79,15 @@ class NativeEnum:
         native_type: object | None = None,
         **kwargs: dict[str, bool | int | str],
     ) -> None:
+        # Keep behavior for any existing code that relies on subclassing
         super().__init_subclass__(**kwargs)
 
         # If class is dynamically constructed using type()
         if hasattr(cls, "_native_type") and cls._native_type is not None:
             native_type = cls._native_type
+
+        if native_type is None:
+            return
 
         native_names = [
             str(x)
@@ -121,6 +132,61 @@ class NativeEnum:
     def __hash__(self) -> int:
         return hash(self._py_value)
 
+    @classmethod
+    def from_dotnet_type(cls, dotnet_type: object) -> type:
+        """Create (or return cached) dynamic NativeEnum subclass for given .NET enum type.
+
+        The returned class exposes each enum member as a class attribute (upper snake case), and
+        provides classmethods `from_value` and `from_name` for lookup along with `names()` and `values()`.
+        """
+        key = str(dotnet_type)
+        if key in _native_enum_cache:
+            return _native_enum_cache[key]
+
+        # Create subclass
+        name = dotnet_type.Name
+        new_cls = type(name, (cls,), {"_native_type": dotnet_type})
+
+        native_names = [str(x) for x in dotnet_type.GetEnumNames()]
+        native_values = [int(x) for x in dotnet_type.GetEnumValues()]
+
+        name_to_value: dict[str, int] = {}
+        value_to_member: dict[int, "NativeEnum"] = {}
+
+        for n, v in zip(native_names, native_values):
+            py_name = to_snake_case(n, upper=True)
+            inst = new_cls(py_name, v)
+            setattr(new_cls, py_name, inst)
+            name_to_value[py_name] = v
+            value_to_member[v] = inst
+
+        # Attach lookup helpers
+        def from_value(cls2, value: int) -> "NativeEnum":
+            try:
+                return value_to_member[int(value)]
+            except Exception as e:
+                raise ValueError(f"{value} is not a valid value for {cls2.__name__}") from e
+
+        def from_name(cls2, name: str) -> "NativeEnum":
+            py_name = to_snake_case(name, upper=True)
+            try:
+                return getattr(cls2, py_name)
+            except Exception as e:
+                raise ValueError(f"{name} is not a valid name for {cls2.__name__}") from e
+
+        def names_fn(cls2) -> list[str]:
+            return list(name_to_value.keys())
+
+        def values_fn(cls2) -> list[int]:
+            return list(value_to_member.keys())
+
+        new_cls.from_value = classmethod(from_value)
+        new_cls.from_name = classmethod(from_name)
+        new_cls.names = classmethod(names_fn)
+        new_cls.values = classmethod(values_fn)
+
+        _native_enum_cache[key] = new_cls
+        return new_cls
 
 types = get_object_types()
 FormatterType = types["Formatter"]
@@ -131,7 +197,7 @@ __all__ = [
     "FracturedJsonOptions",
 ]
 for enum_name in [x.Name for x in types.values() if x.IsEnum]:
-    enum_type = type(enum_name, (NativeEnum,), {"_native_type": types[enum_name]})
+    enum_type = NativeEnum.from_dotnet_type(types[enum_name])
     globals()[enum_name] = enum_type
     __all__.append(enum_type)  # noqa: PYI056
 
@@ -181,8 +247,8 @@ class FracturedJsonOptions:
         prop = self._properties[name]["prop"]
         if self._properties[name]["is_enum"]:
             native_value = prop.GetValue(self._dotnet_instance)
-            derived_enum = type(prop.Name, (NativeEnum,), {"_native_type": prop.PropertyType})
-            return derived_enum(to_snake_case(str(native_value), upper=True), (int(native_value)))
+            derived_enum = NativeEnum.from_dotnet_type(prop.PropertyType)
+            return derived_enum.from_value(int(native_value))
 
         return prop.GetValue(self._dotnet_instance)
 
