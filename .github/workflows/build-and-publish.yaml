@@ -5,11 +5,8 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
   release:
-    # Trigger on GitHub release creation
     types: [created]
 
 jobs:
@@ -69,6 +66,4 @@ jobs:
         run: uv build --wheel
 
       - name: Publish to PyPI
-        env:
-            PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: uv publish
