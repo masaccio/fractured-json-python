@@ -5,20 +5,39 @@ from os import environ
 from pathlib import Path
 from typing import Final
 
+MAX_COLUMNS = 76
+
+
+def last_comma_after_pos(s: str, start: int) -> int:
+    """Find index of last comma in s after a start position."""
+    return s.rfind(",", start)
+
 
 def main() -> None:
     docs_readme: Final[Path] = Path("docs/README.md")
     out_readme: Final[Path] = Path("README.md")
 
-    environ["COLUMNS"] = "76"
+    environ["COLUMNS"] = str(MAX_COLUMNS)
     result = subprocess.run(
         ["fractured-json", "--help"],  # noqa: S607
         check=True,
         capture_output=True,
         text=True,
-        env={**subprocess.os.environ, "COLUMNS": "76"},
     )
-    help_text = result.stdout
+
+    help_text = ""
+    for line in result.stdout.splitlines():
+        if len(line) > MAX_COLUMNS and "{" in line:
+            # argparse doesn't break choices across lines so
+            # find the last fitting choice and insert a bread
+            # padding the next line to line up to the brace position
+            choice_start = line.find("{") + 1
+            choice_break = line.rfind(",", choice_start, MAX_COLUMNS + 1) + 1
+            help_text += line[:choice_break] + "\n"
+            help_text += " " * choice_start
+            help_text += line[choice_break:] + "\n"
+        else:
+            help_text += line + "\n"
 
     text = docs_readme.read_text(encoding="utf-8")
 

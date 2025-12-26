@@ -40,10 +40,12 @@ usage: fractured-json [-h] [-V] [--output OUTPUT]
                       [--max-total-line-length N]
                       [--min-compact-array-row-items N]
                       [--nested-bracket-padding]
-                      [--number-list-alignment {LEFT,RIGHT,DECIMAL,NORMALIZE}]
+                      [--number-list-alignment {LEFT,RIGHT,DECIMAL,
+                                                NORMALIZE}]
                       [--prefix-string PREFIX_STRING]
                       [--preserve-blank-lines] [--simple-bracket-padding]
-                      [--table-comma-placement {BEFORE_PADDING,AFTER_PADDING,BEFORE_PADDING_EXCEPT_NUMBERS}]
+                      [--table-comma-placement {BEFORE_PADDING,AFTER_PADDING,
+                                                BEFORE_PADDING_EXCEPT_NUMBERS}]
                       [--use-tab-to-indent] [--east-asian-chars]
                       [json ...]
 
@@ -149,7 +151,8 @@ options:
                         array/object has a complexity of 1. That is, if it
                         only contains primitive elements and/or empty
                         arrays/objects. (default=False)
-  --table-comma-placement {BEFORE_PADDING,AFTER_PADDING,BEFORE_PADDING_EXCEPT_NUMBERS}
+  --table-comma-placement {BEFORE_PADDING,AFTER_PADDING,
+                           BEFORE_PADDING_EXCEPT_NUMBERS}
                         Where to place commas in table-formatted elements.
                         (default=BEFORE_PADDING_EXCEPT_NUMBERS)
   --use-tab-to-indent   If true, a single tab character is used per
