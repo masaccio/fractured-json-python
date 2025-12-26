@@ -77,5 +77,5 @@ setup(
         "build_py": build_py,
     },
     # Force platform-specific wheels
-    has_ext_modules=lambda: True,
+    # has_ext_modules=lambda: True,
 )
