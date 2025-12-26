@@ -62,4 +62,4 @@ jobs:
         run: uv run python3 src/build/build_binaries.py
 
       - name: Run tests
-        run: uv run tox -e py311,py312,py313
+        run: uv run pytest
