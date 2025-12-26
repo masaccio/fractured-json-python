@@ -1,5 +1,9 @@
 name: Build and Publish
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   push:
     branches: [ "main" ]
@@ -26,6 +30,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync and update FracturedJson submodule
+        shell: bash
         run: |
           set -euo pipefail
           git submodule sync --recursive
