@@ -53,14 +53,17 @@ jobs:
       - name: Build FracturedJson binaries
         run: uv run python3 src/build/build_binaries.py
 
-      - name: Build wheel
-        run: |
-          python -m pip install --upgrade build twine
-          python -m build --wheel
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Build source distribution (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: uv build --sdist
+
+      - name: Build binary wheel
+        run: uv build --wheel
 
       - name: Publish to PyPI
-        if: github.event_name == 'release' || github.ref_type == 'tag'
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload dist/*
+            PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish
