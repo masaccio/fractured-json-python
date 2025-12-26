@@ -206,6 +206,10 @@ class FracturedJsonOptions:
 
     def get(self, name: str) -> int | bool | str | NativeEnum:
         """Getter for an option that calls the .NET class."""
+        if name not in self._properties:
+            msg = f"Unknown option '{name}'"
+            raise AttributeError(msg)
+
         prop = self._properties[name]["prop"]
         if self._properties[name]["is_enum"]:
             native_value = prop.GetValue(self._dotnet_instance)
@@ -254,7 +258,7 @@ class FracturedJsonOptions:
         """Setter for an option that calls the .NET class."""
         if name not in self._properties:
             msg = f"Unknown option '{name}'"
-            raise KeyError(msg)
+            raise AttributeError(msg)
 
         prop = self._properties[name]["prop"]
         try:
@@ -271,7 +275,7 @@ class FracturedJsonOptions:
         try:
             return self.get(name)
         except AttributeError:
-            msg = f"{type(self).__name__} has no attribute {name!r}"
+            msg = f"{type(self).__name__} has no attribute '{name}'"
             raise AttributeError(msg) from None
 
     def __setattr__(self, name: str, value: int | bool | str | NativeEnum) -> None:  # noqa: FBT001
@@ -282,7 +286,8 @@ class FracturedJsonOptions:
             try:
                 self.set(name, value)
             except AttributeError:
-                object.__setattr__(self, name, value)
+                msg = f"{type(self).__name__} has no attribute '{name}'"
+                raise AttributeError(msg) from None
 
 
 class Formatter:
