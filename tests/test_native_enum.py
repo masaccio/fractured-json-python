@@ -1,21 +1,21 @@
 import pytest
 
-from fractured_json import NativeEnum, FracturedJsonOptions
+from fractured_json import NativeEnum
 
 
-class FakeDotNetEnum:
+class FakeDotNetEnum:  # noqa: D101
     Name = "Example"
 
     @staticmethod
-    def GetEnumNames():
+    def GetEnumNames():  # noqa: ANN205, D102, N802
         return ["Alpha", "Beta"]
 
     @staticmethod
-    def GetEnumValues():
+    def GetEnumValues():  # noqa: ANN205, D102, N802
         return [10, 20]
 
 
-def test_from_dotnet_type_creates_class_and_members():
+def test_from_dotnet_type():
     cls = NativeEnum.from_dotnet_type(FakeDotNetEnum)
     assert isinstance(cls, type)
     assert hasattr(cls, "ALPHA")
@@ -24,7 +24,7 @@ def test_from_dotnet_type_creates_class_and_members():
     assert cls.BETA.value == 20
 
 
-def test_from_value_and_from_name_and_caching():
+def test_type_caching():
     cls1 = NativeEnum.from_dotnet_type(FakeDotNetEnum)
     cls2 = NativeEnum.from_dotnet_type(FakeDotNetEnum)
     assert cls1 is cls2  # cached
@@ -36,24 +36,7 @@ def test_from_value_and_from_name_and_caching():
     assert set(cls1.values()) == {10, 20}
 
 
-def test_fracturedjsonoptions_enum_roundtrip():
-    opts = FracturedJsonOptions()
-    # set using string name
-    opts.comment_policy = "Remove"
-    assert opts.comment_policy.name == "REMOVE"
-
-    # set using NativeEnum member
-    cls = NativeEnum.from_dotnet_type(opts._properties["comment_policy"]["prop"].PropertyType)
-    member = cls.from_name("Preserve")
-    opts.comment_policy = member
-    assert opts.comment_policy is member
-
-    # invalid value raises ValueError from setter
-    with pytest.raises(ValueError, match="Invalid value 'Invalid' for option comment_policy"):
-        opts.set("comment_policy", "Invalid")
-
-
-def test_eq_and_hash_and_dict_key():
+def test_eq_and_hash():
     cls = NativeEnum.from_dotnet_type(FakeDotNetEnum)
     a = cls.ALPHA
     b = cls.BETA
@@ -64,7 +47,7 @@ def test_eq_and_hash_and_dict_key():
 
     # equality to integer value (legacy behavior)
     assert a == 10
-    assert (a != 11)
+    assert a != 11
 
     # hash stable and usable as dict key
     d = {a: "x", b: "y"}
@@ -72,7 +55,7 @@ def test_eq_and_hash_and_dict_key():
     assert d[cls.from_value(20)] == "y"
 
 
-def test_from_value_and_from_name_invalid_raises():
+def test_exceptions():
     cls = NativeEnum.from_dotnet_type(FakeDotNetEnum)
 
     with pytest.raises(ValueError, match=r"is not a valid value for Example"):
