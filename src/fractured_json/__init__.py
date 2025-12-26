@@ -221,14 +221,6 @@ class FracturedJsonOptions:
     @classmethod
     def _from_dotnet(cls, dotnet_instance: object) -> "FracturedJsonOptions":
         """Create Python wrapper from existing .NET FracturedJsonOptions instance."""
-        if dotnet_instance is None:
-            msg = "dotnet_instance cannot be None"
-            raise ValueError(msg)
-
-        if str(dotnet_instance.GetType()) != str(FracturedJsonOptionsType):
-            msg = f"Expected {FracturedJsonOptionsType}, got {dotnet_instance.GetType()}"
-            raise TypeError(msg)
-
         wrapper = cls()
         wrapper._dotnet_instance = dotnet_instance  # Reuse existing instance
         return wrapper
