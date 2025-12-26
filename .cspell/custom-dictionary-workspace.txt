@@ -1,6 +1,7 @@
 # Custom Dictionary Words
 coreclr
 Dunder
+pytest
 pytestconfig
 pythonnet
 wcswidth
