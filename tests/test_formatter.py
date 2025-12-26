@@ -1,3 +1,5 @@
+import importlib
+import sys
 from pathlib import Path
 
 import pytest
@@ -98,3 +100,45 @@ def test_exceptions():
         match=r"Invalid value 'EolStyle\.CRLF' for option comment_policy",
     ):
         _ = FracturedJsonOptions(comment_policy=EolStyle.CRLF)
+    formatter = Formatter()
+    with pytest.raises(TypeError, match="json_text must be a str"):
+        formatter.reformat(None)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="json_text must be a str"):
+        formatter.minify(b"{}")  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="Must be callable"):
+        formatter.string_length_func = 123  # type: ignore[assignment]
+
+
+def test_dll_missing(path_is_file_fails):  # noqa: ARG001
+    if "fractured_json" in sys.modules:
+        del sys.modules["fractured_json"]
+
+    with pytest.raises(FileNotFoundError) as exc:
+        importlib.import_module("fractured_json")
+
+    assert "FracturedJson.dll not found" in str(exc.value)
+
+
+def test_load_runtime_fails(pythonnet_load_raises):  # noqa: ARG001
+    if "fractured_json" in sys.modules:
+        del sys.modules["fractured_json"]
+
+    with pytest.raises(RuntimeError) as exc:
+        importlib.import_module("fractured_json")
+
+    assert "Failed to load pythonnet runtime" in str(exc.value)
+    assert "coreclr" in str(exc.value)
+
+
+def test_string_length_property():
+    formatter = Formatter()
+
+    def double_len(s: str) -> int:
+        return len(s) * 2
+
+    formatter.string_length_func = double_len
+    getter = formatter.string_length_func
+    assert callable(getter)
+    assert getter("abc") == 6
