@@ -11,9 +11,35 @@ from fractured_json.generated.option_descriptions import FLAG_DESCRIPTIONS
 def command_line_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Format JSON into compact, human readable form",
+        add_help=False,
     )
-    parser.add_argument("-V", "--version", action="store_true")
 
+    parser.add_argument(
+        "-h",
+        "--help",
+        default=False,
+        action="store_true",
+        help="Show this help message and exit",
+    )
+    parser.add_argument(
+        "-?",
+        dest="dos_help",
+        default=False,
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="store_true",
+        help="Output the script version and exit",
+    )
+    parser.add_argument(
+        "--in-place",
+        action="store_true",
+        default=False,
+        help="Save any edits back to the input file",
+    )
     parser.add_argument(
         "--output",
         "-o",
@@ -59,7 +85,6 @@ def command_line_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "json",
         nargs="*",
-        type=argparse.FileType("r"),
         help='JSON file(s) to parse (or stdin with "-")',
     )
     parser.add_argument(
@@ -68,7 +93,6 @@ def command_line_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Treat strings as unicode East Asian characters",
     )
-    parser.add_argument("-?", dest="dos_help", action="store_true", help=argparse.SUPPRESS)
 
     return parser
 
@@ -83,7 +107,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.version:
         print(fractured_json_version)
-    elif len(args.json) == 0 or args.dos_help:
+    elif len(args.json) == 0 or args.help or args.dos_help:
         parser.print_help()
     else:
         options = FracturedJsonOptions()
@@ -94,23 +118,31 @@ def main() -> None:
             formatter.string_length_func = lambda s: wcswidth(s)
 
         in_files = args.json
-        out_files = args.output
 
-        if out_files is None:
-            for fh in args.json:
-                json_input = fh.read()
-                output_json = formatter.reformat(json_input)
-                print(output_json, end="")
-            return
+        if args.in_place:
+            out_files = args.json
+        elif args.output is None:
+            out_files = [None] * len(in_files)
+        else:
+            if len(in_files) != len(args.output):
+                die("the numbers of input and output file names do not match")
+            out_files = args.output
 
-        if len(in_files) != len(out_files):
-            die("the numbers of input and output file names do not match")
+        for fn_in, fn_out in zip(in_files, out_files, strict=True):
+            if fn_in == "-":
+                in_json_string = sys.stdin.read()
+            else:
+                try:
+                    in_json_string = open(fn_in).read()
+                except FileNotFoundError as e:
+                    die(str(e))
 
-        for fh_in, fn_out in zip(args.json, args.output, strict=True):
-            json_input = fh_in.read()
-            output_json = formatter.reformat(json_input)
-            with open(fn_out, "w", newline="") as fh_out:
-                fh_out.write(output_json)
+            out_json_string = formatter.reformat(in_json_string)
+
+            if fn_out is None:
+                sys.stdout.write(out_json_string)
+            elif not args.in_place or in_json_string != out_json_string:
+                open(fn_out, "w").write(out_json_string)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -26,7 +26,7 @@ The [FracturedJson Wiki](https://github.com/j-brooke/FracturedJson/wiki) provide
 The package installs a command-line script `fractured-json` which can compact one or more JSON files according to command-line switches.
 
 ``` text
-usage: fractured-json [-h] [-V] [--output OUTPUT]
+usage: fractured-json [-h] [-V] [--in-place] [--output OUTPUT]
                       [--allow-trailing-commas] [--always-expand-depth N]
                       [--colon-before-prop-name-padding] [--colon-padding]
                       [--comma-padding] [--comment-padding]
@@ -55,8 +55,9 @@ positional arguments:
   json                  JSON file(s) to parse (or stdin with "-")
 
 options:
-  -h, --help            show this help message and exit
-  -V, --version
+  -h, --help            Show this help message and exit
+  -V, --version         Output the script version and exit
+  --in-place            Save any edits back to the input file
   --output, -o OUTPUT   The output file name(s). The number of output file
                         names must match the number of input files.
   --allow-trailing-commas

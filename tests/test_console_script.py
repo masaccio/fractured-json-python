@@ -108,7 +108,7 @@ def test_main(script_runner):
     ret = script_runner.run(["python3", "-m", "fractured_json", "--help"])
     assert ret.stderr == ""
     assert ret.success
-    assert "[-h] [-V] [--output" in ret.stdout
+    assert "[-h] [-V] [--in-place] [--output OUTPUT]" in ret.stdout
 
 
 @pytest.mark.script_launch_mode("subprocess")
