@@ -36,18 +36,13 @@ jobs:
           git reset --hard origin/main
           popd
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Install .NET 8 (Windows only)
         if: matrix.os == 'windows-latest'
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install uv
+      - name: Install uv and set the python version
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
