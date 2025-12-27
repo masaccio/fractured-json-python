@@ -57,6 +57,39 @@ Example:
 '{"a": 1}\n'
 ```
 
+### Object serialization
+
+The `Formatter.serialize` method is used to serialize a python object to formatted JSON.
+
+``` python
+>>> from fractured_json import Formatter
+>>> obj = {'a': 1, 'b': [7, 8, 9], 'c': {'x': 0, 'y': 0}}
+>>> formatter = Formatter()
+>>> formatter.serialize(obj)
+'{ "a": 1, "b": [7, 8, 9], "c": {"x": 0, "y": 0} }\n'
+```
+
+Optional parameters for the starting depth of formatting and for options for the serialization into JSON are available but the serialization options are not Python but instead a [.NET JsonSerializerOptions Class](https://docs.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions). You must use `pythonnet` to construct this class and then interact with it. For example to enable escaping of `'` in the JSON output:
+
+``` python
+import clr
+
+clr.AddReference("System.Text.Json")
+clr.AddReference("System.Text.Encodings.Web")
+
+from System.Text.Encodings.Web import JavaScriptEncoder
+from System.Text.Json import JsonSerializerOptions
+
+json_options = JsonSerializerOptions()
+json_options.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+json_options.WriteIndented = True
+
+formatter = Formatter()
+result = formatter.serialize(obj, 0, json_options)
+```
+
+
+
 ### Options
 
 A full description of the options available can be found in the [FracturedJson Wiki](https://github.com/j-brooke/FracturedJson/wiki/Options) and these are dynamically created from the .NET library so will always match the .NET implementation.

@@ -1,4 +1,5 @@
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -185,3 +186,22 @@ def test_formatter_options():
 
     got.max_total_line_length = 100
     assert got.max_total_line_length == 100
+
+
+def test_serialize():
+    json_input = Path("tests/data/test-serialize.json").read_text(encoding="utf-8")
+    py_obj = json.loads(json_input)
+    py_obj["Unknown"] = None
+
+    formatter = Formatter()
+    result = formatter.serialize(py_obj)
+    print(result)
+    # ref_result = Path("tests/data/test-serialize.ref-1.json"").read_text()
+
+    class Dummy:
+        pass
+
+    formatter = Formatter()
+    bad_obj = Dummy()
+    with pytest.raises(TypeError, match="Type 'Dummy' not supported for serialization"):
+        _ = formatter.serialize(bad_obj)

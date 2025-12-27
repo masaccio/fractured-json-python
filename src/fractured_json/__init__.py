@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 import os
 import re
 from collections.abc import Callable
@@ -31,16 +32,27 @@ def load_runtime() -> None:
 load_runtime()
 
 import clr  # noqa: E402
-from System import (  # noqa: E402 # pyright: ignore[reportMissingImports]
+
+# .NET types are imported late because we need to load the .NET runtime first
+
+clr.AddReference("System.Text.Json")
+clr.AddReference("System.Text.Encodings.Web")
+
+from System import (  # noqa: E402
     Activator,
     ArgumentException,
     Boolean,
+    Double,
     Enum,
     Int32,
+    Object,
     String,
     Type,
 )
-from System.Reflection import BindingFlags  # pyright: ignore[reportMissingImports] # noqa: E402
+from System.Collections import ArrayList  # noqa: E402
+from System.Collections.Generic import Dictionary  # noqa: E402
+from System.Reflection import BindingFlags  # noqa: E402
+from System.Text.Json import JsonSerializerOptions  # noqa: E402
 
 
 def get_object_types() -> dict[str, "System.RuntimeType"]:
@@ -155,6 +167,7 @@ class NativeEnum:
 types = get_object_types()
 FormatterType = types["Formatter"]
 FracturedJsonOptionsType = types["FracturedJsonOptions"]
+
 
 __all__ = [
     "Formatter",
@@ -292,6 +305,18 @@ class Formatter:
             options_property = FormatterType.GetProperty("Options")
             options_property.SetValue(self._dotnet_instance, options._dotnet_instance)  # noqa: SLF001
 
+        # Python.NET is unable to find a matching method when we call Formatter.Serialize
+        # directly so we need to coerce it
+        self._serialize_method = None
+        methods = self._dotnet_instance.GetType().GetMethods(
+            BindingFlags.Public | BindingFlags.Instance,
+        )
+        serialize_methods = [m for m in methods if m.Name == "Serialize"]
+        for m in serialize_methods:
+            params = m.GetParameters()
+            if len(params) == 3 and params[2].Name == "serOpts":  # noqa: PLR2004
+                self._serialize_method = m
+
     @property
     def options(self) -> FracturedJsonOptions:
         """Gets/sets the formatting options (FracturedJsonOptions)."""
@@ -342,3 +367,48 @@ class Formatter:
             return Int32(result)
 
         self._dotnet_instance.StringLengthFunc = Func[String, Int32](dotnet_wrapper)
+
+    @staticmethod
+    def to_dotnet(obj: object) -> object:  # noqa: PLR0911
+        """Recursively converts a JSON-serializable Python object to a .NET object."""
+        if isinstance(obj, dict):
+            dotnet_dict = Dictionary[String, Object]()
+            for k, v in obj.items():
+                # Keys must be strings
+                key = str(k)
+                dotnet_dict[key] = Formatter.to_dotnet(v)
+            return dotnet_dict
+
+        if isinstance(obj, (list, tuple)):
+            dotnet_list = ArrayList()
+            for item in obj:
+                dotnet_list.Add(Formatter.to_dotnet(item))
+            return dotnet_list
+
+        if isinstance(obj, bool):
+            return Boolean(obj)
+        if isinstance(obj, int):
+            return Int32(obj)
+        if isinstance(obj, float):
+            return Double(obj)
+        if isinstance(obj, str):
+            return String(obj)
+        if obj is None:
+            return None
+
+        msg = f"Type '{type(obj).__name__}' not supported for serialization"
+        raise TypeError(msg)
+
+    def serialize(
+        self,
+        obj: object,
+        starting_depth: int = 0,
+        ser_opts: JsonSerializerOptions = None,
+    ) -> str:
+        """Format a JSON-serializable Python object into a string."""
+        dotnet_obj = Formatter.to_dotnet(obj)
+        generic_method = self._serialize_method.MakeGenericMethod(type(dotnet_obj))
+        return generic_method.Invoke(
+            self._dotnet_instance,
+            [dotnet_obj, Int32(starting_depth), ser_opts],
+        )
