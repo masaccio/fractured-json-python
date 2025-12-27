@@ -73,8 +73,15 @@ def test_minify():
     assert test_output == ref_output
 
 
+def test_depth():
+    json_input = Path("tests/data/test-bool.json").read_text()
+    formatter = Formatter()
+    test_output = formatter.reformat(json_input, 2)
+    assert test_output == '        { "bools": {"true": true, "false": false} }\n'
+
+
 def test_exceptions():
-    with pytest.raises(KeyError, match="Unknown option 'non_existent_option'"):
+    with pytest.raises(AttributeError, match="Unknown option 'non_existent_option'"):
         _ = FracturedJsonOptions(non_existent_option=True)
 
     with pytest.raises(
@@ -110,6 +117,19 @@ def test_exceptions():
     with pytest.raises(TypeError, match="Must be callable"):
         formatter.string_length_func = 123  # type: ignore[assignment]
 
+    options = FracturedJsonOptions()
+    with pytest.raises(
+        AttributeError,
+        match="FracturedJsonOptions has no attribute 'invalid'",
+    ):
+        _ = options.invalid
+
+    with pytest.raises(
+        AttributeError,
+        match="FracturedJsonOptions has no attribute 'invalid'",
+    ):
+        options.invalid = 0
+
 
 def test_dll_missing(path_is_file_fails):  # noqa: ARG001
     if "fractured_json" in sys.modules:
@@ -142,3 +162,26 @@ def test_string_length_property():
     getter = formatter.string_length_func
     assert callable(getter)
     assert getter("abc") == 6
+
+
+def test_formatter_options():
+    opts = FracturedJsonOptions(
+        max_total_line_length=80,
+        indent_spaces=3,
+        comment_policy="REMOVE",
+        table_comma_placement="BEFORE_PADDING_EXCEPT_NUMBERS",
+        number_list_alignment="LEFT",
+        prefix_string="::",
+        use_tab_to_indent=False,
+    )
+
+    formatter = Formatter()
+    formatter.options = opts
+
+    got = formatter.options
+    assert got.max_total_line_length == 80
+    assert got.indent_spaces == 3
+    assert got.comment_policy.name == "REMOVE"
+
+    got.max_total_line_length = 100
+    assert got.max_total_line_length == 100

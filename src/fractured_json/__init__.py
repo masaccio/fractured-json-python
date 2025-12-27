@@ -178,6 +178,9 @@ class FracturedJsonOptions:
 
     def get(self, name: str) -> int | bool | str | NativeEnum:
         """Getter for an option that calls the .NET class."""
+        if name not in self._properties:
+            msg = f"Unknown option '{name}'"
+            raise AttributeError(msg)
         prop = self._properties[name]["prop"]
         if self._properties[name]["is_enum"]:
             native_value = prop.GetValue(self._dotnet_instance)
@@ -226,7 +229,7 @@ class FracturedJsonOptions:
         """Setter for an option that calls the .NET class."""
         if name not in self._properties:
             msg = f"Unknown option '{name}'"
-            raise KeyError(msg)
+            raise AttributeError(msg)
 
         prop = self._properties[name]["prop"]
         try:
@@ -254,7 +257,8 @@ class FracturedJsonOptions:
             try:
                 self.set(name, value)
             except AttributeError:
-                object.__setattr__(self, name, value)
+                msg = f"{type(self).__name__} has no attribute '{name}'"
+                raise AttributeError(msg) from None
 
 
 class Formatter:
@@ -279,12 +283,12 @@ class Formatter:
         prop = FormatterType.GetProperty("Options")
         prop.SetValue(self._dotnet_instance, value._dotnet_instance)
 
-    def reformat(self, json_text: str) -> str:
+    def reformat(self, json_text: str, starting_depth: int = 0) -> str:
         """Reformat a JSON string and return the formatted result."""
         if not isinstance(json_text, str):
             msg = "json_text must be a str"
             raise TypeError(msg)
-        result = self._dotnet_instance.Reformat(String(json_text))
+        result = self._dotnet_instance.Reformat(String(json_text), Int32(starting_depth))
         return str(result)
 
     def minify(self, json_text: str) -> str:
