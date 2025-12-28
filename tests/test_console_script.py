@@ -2,6 +2,7 @@ import re
 from io import StringIO
 from pathlib import Path
 from shutil import copy
+from tomllib import loads as toml_loads
 
 import pytest
 
@@ -13,8 +14,13 @@ from fractured_json import (
 def test_version(script_runner):
     ret = script_runner.run(["fractured-json", "--version"], print_result=False)
     assert ret.success
-    assert ret.stdout == fractured_json_version + "\n"
+    assert ret.stdout.strip() == fractured_json_version
     assert ret.stderr == ""
+
+    project_toml = (Path(__file__).parent.parent / "pyproject.toml").read_text()
+    toml = toml_loads(project_toml)
+    project_version = toml["project"]["version"]
+    assert ret.stdout.strip() == project_version
 
 
 def test_help(script_runner):

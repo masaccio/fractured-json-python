@@ -232,7 +232,7 @@ formatter.string_length_func = lambda s: wcswidth(s)
 
 ## License
 
-All code in this repository is licensed under the [MIT License](https://github.com/masaccio/fractured-json/blob/master/LICENSE.rst)
+All code in this repository is licensed under the [MIT License](https://github.com/masaccio/fractured-json-python/blob/master/LICENSE.rst)
 
 ## Contribute
 

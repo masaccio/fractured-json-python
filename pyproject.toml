@@ -16,7 +16,7 @@ license = "MIT"
 name = "fractured-json"
 readme = "README.md"
 requires-python = ">=3.11, <3.14"
-version = "5.0.0post4"
+version = "5.0.0post5"
 
 [[project.authors]]
 email = "python@figsandfudge.com"
@@ -38,8 +38,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-documentation = "https://github.com/masaccio/fractured-json/blob/main/README.md"
-repository = "https://github.com/masaccio/fractured-json"
+documentation = "https://github.com/masaccio/fractured-json-python/blob/main/README.md"
+repository = "https://github.com/masaccio/fractured-json-python"
 
 [project.scripts]
 fractured-json = "fractured_json._fractured_json:main"
