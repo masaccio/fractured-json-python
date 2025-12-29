@@ -1,7 +1,7 @@
 [project]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: C",
+    "Programming Language :: C#",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS"
